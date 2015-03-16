@@ -1,0 +1,17 @@
+{
+  "name": "over900-server",
+  "version": "0.0.1",
+  "description": "Server for over9000 application, that uses winnowing and chaffing for providing text messaging security",
+  "private": "true",
+  "dependencies": {
+    "express": "latest",
+    "socket.io": "latest",
+    "mongoose": "latest",
+    "body-parser": "latest",
+    "winston": "latest"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "main": "server.js"
+}
