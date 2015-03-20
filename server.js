@@ -10,8 +10,7 @@ var messages = require(__dirname+'/messages/messages.js');
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
 var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
-var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost';
-var mongo_url = mongo_db + '/over9000';
+var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost/over9000';
 
 /* Setting up Winston for logging */
 var logger = new(winston.Logger)({
@@ -23,7 +22,7 @@ var logger = new(winston.Logger)({
 });
 
 /* Setting up database connection */
-mongoose.connect(mongo_url);
+mongoose.connect(mongo_db);
 var db = mongoose.connection;
 db.on('error',function(error) {
     logger.error("Error while connecting to db at: "+mongo_url, error);
