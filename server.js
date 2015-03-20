@@ -25,10 +25,10 @@ var logger = new(winston.Logger)({
 mongoose.connect(mongo_db);
 var db = mongoose.connection;
 db.on('error',function(error) {
-    logger.error("Error while connecting to db at: "+mongo_url, error);
+    logger.error("Error while connecting to db at: "+mongo_db, error);
 });
 db.once('open', function () {
-    logger.info("Successfuly connected to db at: "+mongo_url);
+    logger.info("Successfuly connected to db at: "+mongo_db);
 });
 
 /* Basic check */
