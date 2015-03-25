@@ -5,12 +5,17 @@ var mongoose = require('mongoose');
 var winston = require('winston');
 var User = require(__dirname+'/models/User.js');
 var messages = require(__dirname+'/messages/messages.js');
+var async = require('async');
+var jwt = require('jsonwebtoken');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
 var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '192.168.0.4';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
 var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost/over9000';
+
+/* Secret for JWT */
+var secret = "testsecret";
 
 /* Setting up Winston for logging */
 var logger = new(winston.Logger)({
@@ -42,11 +47,12 @@ http.listen(server_port, server_ip_address, function() {
     server_port);
 });
 
+/* Socket.io setup */
 io.on('connection', function (socket) {
     logger.info("Client connected: "+socket.handshake.address);
 
     /* Registering user */
-    socket.on('registerUser', function registerUser(data) {
+    var registerUser = function (data) {
         logger.info("Registering user", data);
         var user = new User(JSON.parse(data));
         user.save(function(err, user) {
@@ -60,10 +66,107 @@ io.on('connection', function (socket) {
                 }
             }
             else {
-                logger.debug("Zarejestrowano",user.email);
+                logger.debug("Registered user",user.email);
                 socket.emit('registerResponse', messages.registrationOk);
             }
         });
-    });
+    }
 
+    function validateLoginData(data, callback) {
+        logger.info("Validating data ", data);
+        var userData = JSON.parse(data);
+        if(!userData.email || !userData.password) {
+            logger.error("Invalid login data ", data);
+            callback(messages.loginError);
+        } else {
+            callback(null, userData);
+        }
+    }
+
+    function findUser(userData, callback) {
+        logger.info("Searching for user ", userData.email);
+        User.findOne({email: userData.email}, function(err, user) {
+            if(err) {
+                logger.error("Error while searching for user ", err);
+                callback(messages.loginError);
+            }
+            if(user) {
+                callback(null, user, userData);
+            } else {
+                logger.error("Cannot find user ", userData.email);
+                callback(messages.loginCannotFindUser);
+            }
+        })
+    }
+
+    function compareHash(user, userData, callback) {
+        logger.info("Checking password");
+        if(userData.password === user.password) {
+            callback(null, user);
+        } else {
+            logger.info("Invalid password for user ", userData.email);
+            callback(messages.loginInvalidPassword);
+        }
+    }
+
+    function checkToken(user, callback) {
+        logger.info("Checking for token");
+        if(user.token) {
+            jwt.verify(user.token, secret, function(err, decoded) {
+                if(err) {
+                    callback(null, user);
+                } else {
+                    logger.error("User is already authenticated ", user.email);
+                    callback(messages.loginAlreadyAuthenticated);
+                }
+            });
+        } else {
+            callback(null, user);
+        }
+    }
+
+    function generateNewToken(user, callback) {
+        logger.info("Generating new token for user ", user.email);
+        var payload = {
+            email: user.email,
+            name: user.name,
+            lastname: user.lastname
+        };
+        user.token = jwt.sign(payload, secret, {expiresInMinutes: 60});
+        user.save(function(err) {
+            if(err) {
+                logger.error("Error while saving user ", user.email);
+                callback(messages.errorWhileSaving);
+            } else {
+                callback(null, user);
+            }
+        })
+    }
+
+    var loginUser = function(data) {
+        async.waterfall([
+            validateLoginData(data, callback),
+            findUser(userData, callback),
+            compareHash(user, userData, callback),
+            checkToken(user, callback),
+            generateNewToken(user, callback)
+        ], function(err, user) {
+            if(err) {
+                logger.error("Error while logging user", err);
+                socket.emit('loginResponse', err);
+            }
+            if(user) {
+                logger.info("User logged in ", user.email);
+                var message = messages.loginResponse;
+                message.token = user.token;
+                socket.emit('loginResponse', message);
+            }
+        })
+    }
+
+
+    socket.on('registerUser', registerUser);
+    socket.on('loginRequest', loginUser);
 });
+
+

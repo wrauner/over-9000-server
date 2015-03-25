@@ -8,7 +8,6 @@ var UserSchema = new mongoose.Schema({
     nick: String,
     password: { type: String, required: true},
     token: String,
-    tokenExpiration: Date,
     friends: [String],
     messages: [String]
 });
