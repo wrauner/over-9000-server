@@ -7,8 +7,8 @@ var User = require(__dirname+'/models/User.js');
 var messages = require(__dirname+'/messages/messages.js');
 
 /* Config for RedHat OpenShift */
-var server_port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
-var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1';
+var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
+var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '192.168.0.4';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
 var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost/over9000';
 
@@ -48,7 +48,7 @@ io.on('connection', function (socket) {
     /* Registering user */
     socket.on('registerUser', function registerUser(data) {
         logger.info("Registering user", data);
-        var user = new User(data);
+        var user = new User(JSON.parse(data));
         user.save(function(err, user) {
             if (err) {
                 if(err.code == 11000) {
