@@ -7,6 +7,7 @@ var User = require(__dirname+'/models/User.js');
 var messages = require(__dirname+'/messages/messages.js');
 var async = require('async');
 var jwt = require('jsonwebtoken');
+var bodyParser = require('body-parser');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
@@ -14,7 +15,10 @@ var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '192.168.0.4';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
 var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost/over9000';
 
-/* Secret for JWT */
+/* Setting middleware */
+app.use(bodyParser.json());
+
+/* Setting secret */
 var secret = "testsecret";
 
 /* Setting up Winston for logging */
@@ -41,45 +45,48 @@ app.get('/', function(req, res) {
   res.send('<h1>Working!!!</h1>');
 });
 
-/* Starting server */
-http.listen(server_port, server_ip_address, function() {
-  logger.log('info', "Listening on " + server_ip_address + ", server_port " +
-    server_port);
-});
-
-/* Socket.io setup */
-io.on('connection', function (socket) {
-    logger.info("Client connected: "+socket.handshake.address);
-
-    /* Registering user */
-    var registerUser = function (data) {
-        logger.info("Registering user", data);
-        var user = new User(JSON.parse(data));
-        user.save(function(err, user) {
+/* Registering user */
+var registerUser = function (req, res) {
+    if(req.body) {
+        logger.info("Registering user");
+        var user = new User(req.body);
+        user.save(function (err, user) {
             if (err) {
-                if(err.code == 11000) {
+                if (err.code == 11000) {
                     logger.error("User already exists", user.email);
-                    socket.emit('registerResponse', messages.userExists);
+                    res.send(messages.userExists);
                 } else {
                     logger.error("Registration error", err);
-                    socket.emit('registerResponse', messages.registrationError);
+                    res.send(messages.registrationError);
                 }
             }
             else {
-                logger.debug("Registered user",user.email);
-                socket.emit('registerResponse', messages.registrationOk);
+                logger.info("Registered user", user.email);
+                res.send(messages.registrationOk);
             }
-        });
+        })
+    } else {
+        logger.error("Empty registration request");
+        res.send(messages.registrationEmpty);
     }
+};
+app.post('/register', registerUser);
 
-    function validateLoginData(data, callback) {
-        logger.info("Validating data ", data);
-        var userData = JSON.parse(data);
-        if(!userData.email || !userData.password) {
-            logger.error("Invalid login data ", data);
-            callback(messages.loginError);
+/* Login user*/
+function loginUser(req, res) {
+
+    function validateLoginData(callback) {
+        logger.info("Validating data ", req.body);
+        if(req.body) {
+            var userData = req.body;
+            if (!userData.email || !userData.password) {
+                logger.error("Invalid login data ", req.body);
+                callback(messages.loginError);
+            } else {
+                callback(null, userData);
+            }
         } else {
-            callback(null, userData);
+            callback(messages.loginEmpty);
         }
     }
 
@@ -112,7 +119,7 @@ io.on('connection', function (socket) {
     function checkToken(user, callback) {
         logger.info("Checking for token");
         if(user.token) {
-            jwt.verify(user.token, secret, function(err, decoded) {
+            jwt.verify(user.token, secret, function(err) {
                 if(err) {
                     callback(null, user);
                 } else {
@@ -143,30 +150,47 @@ io.on('connection', function (socket) {
         })
     }
 
-    var loginUser = function(data) {
-        async.waterfall([
-            validateLoginData(data, callback),
-            findUser(userData, callback),
-            compareHash(user, userData, callback),
-            checkToken(user, callback),
-            generateNewToken(user, callback)
-        ], function(err, user) {
-            if(err) {
-                logger.error("Error while logging user", err);
-                socket.emit('loginResponse', err);
-            }
-            if(user) {
-                logger.info("User logged in ", user.email);
-                var message = messages.loginResponse;
-                message.token = user.token;
-                socket.emit('loginResponse', message);
-            }
-        })
-    }
+    /* Let it rain */
+    async.waterfall([
+        validateLoginData,
+        findUser,
+        compareHash,
+        checkToken,
+        generateNewToken
+    ], function(err, user) {
+        if(err) {
+            logger.error("Error while logging user", err);
+            res.send(err);
+        }
+        if(user) {
+            logger.info("User logged in ", user.email);
+            var message = messages.loginResponse;
+            message.token = user.token;
+            res.send(message);
+        }
+    });
+};
+app.post('/login', function(req, res) {loginUser(req,res)});
 
+/* Starting server */
+http.listen(server_port, server_ip_address, function() {
+  logger.log('info', "Listening on " + server_ip_address + ", server_port " +
+    server_port);
+});
 
-    socket.on('registerUser', registerUser);
-    socket.on('loginRequest', loginUser);
+/* Socket.io setup */
+io.use(socketio_jwt.authorize({
+    secret: secret,
+    handshake: true
+}));
+
+io.on('connection', function (socket) {
+    logger.info("Client connected: "+socket.handshake.address);
+});
+
+/* If something brakes */
+process.on('uncaughtException', function(error) {
+    logger.error("Uncaught exception", error);
 });
 
 

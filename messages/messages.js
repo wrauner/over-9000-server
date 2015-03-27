@@ -12,5 +12,7 @@ module.exports = {
     loginInvalidPassword: {error:"6", description: "invalid password"},
     loginAlreadyAuthenticated: {error:"7", description: "already authenticated"},
     errorWhileSaving: {error:"8", description: "error while saving user"},
-    loginResponse: {error: "0", description: "ok", token:""}
+    loginResponse: {error: "0", description: "ok", token:""},
+    registrationEmpty: {error:"9", description: "empty registration request"},
+    loginEmpty: {error:"10", description: "empty login request"}
 };
