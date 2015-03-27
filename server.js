@@ -8,6 +8,7 @@ var messages = require(__dirname+'/messages/messages.js');
 var async = require('async');
 var jwt = require('jsonwebtoken');
 var bodyParser = require('body-parser');
+var socketio_jwt = require('socketio-jwt');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
