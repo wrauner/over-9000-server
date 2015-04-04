@@ -83,6 +83,9 @@ module.exports.controller = function(app, logger) {
                 jwt.verify(user.token, secret, function (err) {
                     if (err) {
                         callback(null, user);
+                    } else {
+                        logger.error("User is already authenticated ", user.email);
+                        callback(messages.loginAlreadyAuthenticated);
                     }
                 });
             } else {
@@ -113,7 +116,7 @@ module.exports.controller = function(app, logger) {
             validateLoginData,
             findUser,
             compareHash,
-            checkToken,
+            //checkToken,
             generateNewToken
         ], function (err, user) {
             if (err) {
