@@ -64,7 +64,14 @@ io.use(socketio_jwt.authorize({
 }));
 
 io.on('connection', function (socket) {
-    logger.info("Client connected: "+socket.handshake.address);
+    logger.info("Client connected: "+socket.decoded_token.email+":"+socket.handshake.address);
+    socket.on('disconnect', function() {
+        logger.info("Clienct disconnected:"+socket.decoded_token.email+":"+socket.handshake.address);
+    });
+    socket.on('SEND_MESSAGE', function(msg) {
+        logger.info("Message:"+msg+" from "+socket.decoded_token.email);
+        io.emit('RECEIVED_MESSAGE', msg);
+    });
 });
 
 /* If something brakes */
