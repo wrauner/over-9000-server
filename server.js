@@ -70,7 +70,7 @@ io.on('connection', function (socket) {
     });
     socket.on('SEND_MESSAGE', function(msg) {
         logger.info("Message:"+msg+" from "+socket.decoded_token.email);
-        io.emit('RECEIVED_MESSAGE', JSON.parse(msg));
+        socket.broadcast.emit('RECEIVED_MESSAGE', JSON.parse(msg));
     });
 });
 
