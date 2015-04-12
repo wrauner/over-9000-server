@@ -131,6 +131,22 @@ module.exports.controller = function(app, logger) {
             }
         });
     };
+
+    var searchUser = function(req, res) {
+        if(req.params && req.params.email) {
+            logger.info("Searching: "+req.params.email);
+            User.find({"email":req.params.email}, {'_id':0, 'name':1, 'lastname':1, 'email':1}, function(err, users) {
+                if(err) {
+                    logger.error("Error while searching for user", err);
+                    res.send([]);
+                } else {
+                    res.send(users);
+                }
+            });
+        }
+    };
+
     app.post('/login', loginUser);
     app.post('/register', registerUser);
+    app.get('/search/:email', searchUser);
 };
