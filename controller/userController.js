@@ -140,7 +140,7 @@ module.exports.controller = function(app, logger) {
                     logger.error("Error while searching for user", err);
                     res.send([]);
                 } else {
-                    res.send(users);
+                    res.send({"friends": users});
                 }
             });
         }
