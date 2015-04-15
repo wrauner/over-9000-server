@@ -139,7 +139,7 @@ module.exports.controller = function(app, logger, secret) {
             User.find({"email":req.params.email}, {'_id':0, 'name':1, 'lastname':1, 'email':1}, function(err, users) {
                 if(err) {
                     logger.error("Error while searching for user", err);
-                    res.send([]);
+                    res.send({"friends": []});
                 } else {
                     res.send({"friends": users});
                 }
@@ -152,13 +152,13 @@ module.exports.controller = function(app, logger, secret) {
         User.findOne({"email":req.user.email}, function(err, user) {
             if(err) {
                 logger.error("Error while getting friends of user", req.user, err);
-                res.send([]);
+                res.send({"friends":[]});
             } else {
                 if(user) {
-                    res.send(user.friends);
+                    res.send({"friends":user.friends});
                 } else {
                     logger.error("User not found", req.user, err);
-                    res.send([]);
+                    res.send({"friends":[]});
                 }
             }
         })
