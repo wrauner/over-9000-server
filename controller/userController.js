@@ -3,8 +3,9 @@ var messages = require('../messages/messages.js');
 var async = require('async');
 var jwt = require('jsonwebtoken');
 var User = require('../models/User.js');
+var express_jwt = require('express-jwt');
 
-module.exports.controller = function(app, logger) {
+module.exports.controller = function(app, logger, secret) {
     /* Setting secret */
     var secret = "testsecret";
     /* Registering user */
@@ -146,7 +147,25 @@ module.exports.controller = function(app, logger) {
         }
     };
 
+    var getFriends = function(req,res) {
+        logger.info("Getting friends: " + req.user.email);
+        User.findOne({"email":req.user.email}, function(err, user) {
+            if(err) {
+                logger.error("Error while getting friends of user", req.user, err);
+                res.send([]);
+            } else {
+                if(user) {
+                    res.send(user.friends);
+                } else {
+                    logger.error("User not found", req.user, err);
+                    res.send([]);
+                }
+            }
+        })
+    };
+
     app.post('/login', loginUser);
     app.post('/register', registerUser);
     app.get('/search/:email', searchUser);
+    app.get('/friends',express_jwt({secret: secret}), getFriends);
 };

@@ -47,7 +47,7 @@ app.get('/', function(req, res) {
 fs.readdirSync('./controller').forEach(function (file) {
     if(file.substr(-3) == '.js') {
         route = require('./controller/' + file);
-        route.controller(app, logger);
+        route.controller(app, logger, secret);
     }
 });
 

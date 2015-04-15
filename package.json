@@ -11,7 +11,8 @@
     "winston": "0.9.0",
     "async": "0.9.0",
     "jsonwebtoken": "4.2.1",
-    "socketio-jwt": "latest"
+    "socketio-jwt": "latest",
+    "express-jwt": "latest"
   },
   "scripts": {
     "start": "node server.js"
