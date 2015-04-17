@@ -8,8 +8,9 @@ var UserSchema = new mongoose.Schema({
     nick: String,
     password: { type: String, required: true},
     token: String,
-    friends: [String],
-    messages: [String]
+    friends: [mongoose.Schema.Types.ObjectId],
+    messages: [String],
+    friendRequests: [mongoose.Schema.Types.ObjectId]
 });
 
 module.exports = mongoose.model('User', UserSchema);

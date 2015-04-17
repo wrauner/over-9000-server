@@ -25,7 +25,7 @@ module.exports.controller = function(app, logger, secret) {
                 }
                 else {
                     logger.info("Registered user", user.email);
-                    res.send(messages.registrationOk);
+                    res.send(messages.ok);
                 }
             })
         } else {
@@ -149,23 +149,127 @@ module.exports.controller = function(app, logger, secret) {
 
     var getFriends = function(req,res) {
         logger.info("Getting friends: " + req.user.email);
-        User.findOne({"email":req.user.email}, function(err, user) {
+        async.waterfall([
+            function(callback) {
+                User.findOne({"email":req.user.email}, callback);
+            },
+            function(user, callback) {
+                User.find().where('_id').in(user.friends).select('email name lastname').exec(callback);
+            }
+        ], function(err, users) {
             if(err) {
-                logger.error("Error while getting friends of user", req.user, err);
+                logger.error("Error while getting friends", err);
                 res.send({"friends":[]});
-            } else {
-                if(user) {
-                    res.send({"friends":user.friends});
-                } else {
-                    logger.error("User not found", req.user, err);
-                    res.send({"friends":[]});
+            }
+            if(users) {
+                res.send({"friends": users});
+            }
+        });
+    };
+
+
+    var addFriend = function(req, res){
+        async.waterfall([
+            function(callback) {
+                User.findOne({"email":req.params.email}, callback);
+            },
+            function(user, callback) {
+                if(user.friends.length > 0) {
+                    for(var i= 0, len = user.friends.length; i<len; i++) {
+                        if(friend.email === req.user.email) {
+                            return (callback(messages.friendAlreadyAdded));
+                        }
+                    }
                 }
+                return callback(null, user);
+            },
+            function(user, callback) {
+                User.findOne({"email":req.user.email}, function(err, userRequesting) {
+                    callback(err, user, userRequesting)
+                });
+            },
+            function(user, userRequesting , callback) {
+                user.friendRequests.push(userRequesting._id);
+                user.save(callback);
+            }
+        ], function(err) {
+            if(err) {
+                logger.error("Error while adding friend", err);
+                res.send(messages.friendAddingFailed)
+            } else {
+                logger.info("Request sent");
+                res.send(messages.ok);
             }
         })
     };
+
+    var getRequests = function(req, res) {
+        logger.info(req.user.email+" getting requests");
+        async.waterfall([
+            function(callback) {
+                User.findOne({email:req.user.email}, callback);
+            },
+            function(user, callback) {
+                User.find().where('_id').in(user.friendRequests).select('email name lastname').exec(callback);
+            }
+        ], function(err, users) {
+              if(err) {
+                  logger.error("Error while getting requests", err);
+                  res.send({requests: []});
+              } else {
+                  res.send({requests: users});
+              }
+        });
+    };
+
+    var acceptRequest = function(req, res) {
+        logger.info(req.user.email+ " accepted request from "+ req.params.email);
+        async.waterfall([
+            function(callback) {
+                User.findOne({email:req.user.email}, callback);
+            },
+            function(userAccepting, callback) {
+               User.findOne({email:req.params.email}, function(err, user) {
+                   callback(err, userAccepting, user);
+               });
+            },
+            function(userAccepting, userRequesting, callback) {
+                userAccepting.friends.push(userRequesting._id);
+                var index = -1;
+                for (var i= 0, len=userAccepting.friendRequests.length; i<len; i++) {
+                    if(userAccepting.friendRequests[i].id === userRequesting._id.id) {
+                        index = i;
+                        break;
+                    }
+                }
+                if(index>-1) {
+                    userAccepting.friendRequests.splice(index, 1);
+                }
+                userAccepting.save(function(err) {
+                    callback(err, userAccepting, userRequesting)
+                });
+            },
+            function(userAccepting, userRequesting, callback) {
+                userRequesting.friends.push(userAccepting._id);
+                userRequesting.save(callback);
+            }
+        ], function(err) {
+            if(err) {
+                logger.error("Failed to accept, error occured", err);
+                res.send(messages.acceptFailed);
+            } else {
+                logger.info("Request accepted");
+                res.send(messages.ok);
+            }
+        })
+    };
+
 
     app.post('/login', loginUser);
     app.post('/register', registerUser);
     app.get('/search/:email', searchUser);
     app.get('/friends',express_jwt({secret: secret}), getFriends);
+    app.put('/friends/requests/:email', express_jwt({secret: secret}), addFriend);
+    app.get('/friends/requests', express_jwt({secret: secret}), getRequests);
+    app.put('/friends/requests/accept/:email', express_jwt({secret: secret}), acceptRequest);
 };
