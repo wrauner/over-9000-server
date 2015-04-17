@@ -154,7 +154,7 @@ module.exports.controller = function(app, logger, secret) {
                 User.findOne({"email":req.user.email}, callback);
             },
             function(user, callback) {
-                User.find().where('_id').in(user.friends).select('email name lastname').exec(callback);
+                User.find().where('_id').in(user.friends).select('-_id email name lastname').exec(callback);
             }
         ], function(err, users) {
             if(err) {
@@ -210,7 +210,7 @@ module.exports.controller = function(app, logger, secret) {
                 User.findOne({email:req.user.email}, callback);
             },
             function(user, callback) {
-                User.find().where('_id').in(user.friendRequests).select('email name lastname').exec(callback);
+                User.find().where('_id').in(user.friendRequests).select('-_id email name lastname').exec(callback);
             }
         ], function(err, users) {
               if(err) {
