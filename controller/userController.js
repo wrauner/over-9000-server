@@ -139,9 +139,9 @@ module.exports.controller = function(app, logger, secret) {
             User.find({"email":req.params.email}, {'_id':0, 'name':1, 'lastname':1, 'email':1}, function(err, users) {
                 if(err) {
                     logger.error("Error while searching for user", err);
-                    res.send({"friends": []});
+                    res.send({"searchResultUsers": []});
                 } else {
-                    res.send({"friends": users});
+                    res.send({"searchResultUsers": users});
                 }
             });
         }
