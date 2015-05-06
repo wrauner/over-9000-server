@@ -5,7 +5,7 @@ var jwt = require('jsonwebtoken');
 var User = require('../models/User.js');
 var express_jwt = require('express-jwt');
 
-module.exports.controller = function(app, logger, secret) {
+module.exports.controller = function(app, logger) {
     /* Setting secret */
     var secret = "testsecret";
     /* Registering user */
