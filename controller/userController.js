@@ -65,7 +65,7 @@ module.exports.controller = function(app, logger) {
                     logger.error("Cannot find user ", userData.email);
                     callback(messages.loginCannotFindUser);
                 }
-            })
+            });
         }
 
         function compareHash(user, userData, callback) {
@@ -176,7 +176,7 @@ module.exports.controller = function(app, logger) {
             function(user, callback) {
                 if(user.friends.length > 0) {
                     for(var i= 0, len = user.friends.length; i<len; i++) {
-                        if(friend.email === req.user.email) {
+                        if(user.friends[i].email === req.user.email) {
                             return (callback(messages.friendAlreadyAdded));
                         }
                     }

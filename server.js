@@ -1,3 +1,5 @@
+/// <reference path="typings/node/node.d.ts"/>
+/* global process */
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -46,8 +48,8 @@ app.get('/', function(req, res) {
 /* Setting up controllers */
 fs.readdirSync('./controller').forEach(function (file) {
     if(file.substr(-3) == '.js') {
-        route = require('./controller/' + file);
-        route.controller(app, logger, secret);
+        var route = require('./controller/' + file);
+        route.controller(app, logger);
     }
 });
 
