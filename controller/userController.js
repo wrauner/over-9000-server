@@ -15,7 +15,7 @@ module.exports.controller = function(app, logger) {
      */
     var loginUser = function(req, res) {
         async.waterfall([
-            function() {
+            function(callback) {
                 if(req.params && req.params.nick) {
                     logger.info("Generating token for", req.params.nick);
                     callback(null, req.params.nick);
@@ -23,7 +23,7 @@ module.exports.controller = function(app, logger) {
                     callback(messages.loginEmpty);
                 }
             },
-            function(nick) {
+            function(nick, callback) {
                 var result = messages.loginResponse;
                 result.token = jwt.sign(nick, secret, {expiresInMinutes: 60});
                 res.send(result);
