@@ -3,11 +3,11 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var mongoose = require('mongoose');
 var winston = require('winston');
 var bodyParser = require('body-parser');
 var socketio_jwt = require('socketio-jwt');
 var fs = require('fs');
+var async = require('async');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
@@ -28,16 +28,6 @@ var logger = new(winston.Logger)({
       filename: log_folder + '/server.log'
     })
   ]
-});
-
-/* Setting up database connection */
-mongoose.connect(mongo_db);
-var db = mongoose.connection;
-db.on('error',function(error) {
-    logger.error("Error while connecting to db at: "+mongo_db, error);
-});
-db.once('open', function () {
-    logger.info("Successfuly connected to db at: "+mongo_db);
 });
 
 /* Basic check */
@@ -65,15 +55,53 @@ io.use(socketio_jwt.authorize({
     handshake: true
 }));
 
+/* Temp list of clients */
+var clients = [];
+
+/* Parsing clients */
+function getClientList(socket) {
+    var result = [];
+    for(var i=0; i<clients.length; i++) {
+        if(clients[i].socketid != socket.socketid) {
+            var client;
+            client.nick = clients[i].decoded_token.nick;
+            client.socketId = clients[i].socketid;
+            result.push(client);
+        }
+    }
+    return result;
+}
+
+function createClientFromSocket(socket) {
+    var client;
+    client.nick = socket.decoded_token.nick;
+    client.socketId = socket.socketid;
+    return client;
+}
+
 io.on('connection', function (socket) {
-    logger.info("Client connected: "+socket.decoded_token.email+":"+socket.handshake.address);
+    logger.info("Client connected: "+socket.decoded_token.nick+":"+socket.handshake.address);
+    clients.push(socket);
+    socket.emit('client_list', getClientList(socket));
+    
     socket.on('disconnect', function() {
-        logger.info("Clienct disconnected:"+socket.decoded_token.email+":"+socket.handshake.address);
+        logger.info("Clienct disconnected:"+socket.decoded_token.nick+":"+socket.handshake.address);
+        clients.splice(clients.indexOf(socket), 1);
     });
-    socket.on('SEND_MESSAGE', function(msg) {
-        logger.info("Message:"+msg+" from "+socket.decoded_token.email);
-        //socket.broadcast.emit('RECEIVED_MESSAGE', JSON.parse(msg));
-        socket.emit('RECEIVED_MESSAGE', {nick:"dummy", text:"dumb bot"})
+    socket.on('connect_to_user', function(socketId) {
+        logger.info("Connecting "+socket.decoded_token.nick+" to "+socketId);
+        io.to(socketId).emit('connection_request', createClientFromSocket(socket));
+    });
+    socket.on('accept_connection', function(socketId) {
+        logger.info("Connection accepted");
+        io.to(socketId).emit('connection_accepted', createClientFromSocket(socket));
+    });
+    socket.on('send_message', function(msg) {
+        logger.info("Message:"+msg+" from "+socket.decoded_token.nick);
+        io.to(msg.to).emit('message', msg);
+    });
+    socket.on('get_users', function() {
+        socket.emit('client_list', getClientList(socket));
     });
 });
 
