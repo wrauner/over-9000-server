@@ -56,6 +56,13 @@ io.use(socketio_jwt.authorize({
 /* Temp list of clients */
 var clients = [];
 
+var clientBot = {
+    nick: "bot",
+    socketId: "bot"
+};
+
+clients.push(clientBot);
+
 /* Parsing clients */
 function getClientListWithoutOne(socket) {
     var result = [];
@@ -88,7 +95,11 @@ io.on('connection', function (socket) {
     });
     socket.on('connect_to_user', function(socketId) {
         logger.info("Connecting "+socket.decoded_token.nick+" to "+socketId);
-        io.to(socketId).emit('connection_request', createClientFromSocket(socket));
+        if (socketId === "bot"){
+            socket.emit('connection_accepted', clientBot);
+        } else {
+            io.to(socketId).emit('connection_request', createClientFromSocket(socket));
+        }
     });
     socket.on('accept_connection', function(socketId) {
         logger.info("Connection accepted");
@@ -96,7 +107,11 @@ io.on('connection', function (socket) {
     });
     socket.on('send_message', function(msg) {
         logger.info("Message:"+msg+" from "+socket.decoded_token.nick);
-        io.to(msg.to).emit('received_message', msg);
+        if(msg.to=="bot") {
+            //return message
+        } else {
+            io.to(msg.to).emit('received_message', msg);
+        }
     });
     socket.on('get_users', function() {
         socket.emit('client_list', getClientListWithoutOne(socket));
