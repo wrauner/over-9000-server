@@ -32,7 +32,7 @@ var logger = new(winston.Logger)({
 
 /* Basic check */
 app.get('/', function(req, res) {
-  res.send('<h1>Working!!!</h1>');
+  res.send('<h1>Working!</h1>');
 });
 
 /* Setting up controllers */
