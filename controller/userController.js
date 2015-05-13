@@ -24,8 +24,9 @@ module.exports.controller = function(app, logger) {
                 }
             },
             function(nick) {
-                var token = jwt.sign(nick, secret, {expiresInMinutes: 60});
-                res.send(token);
+                var result = messages.loginResponse;
+                result.token = jwt.sign(nick, secret, {expiresInMinutes: 60});
+                res.send(result);
             }
         ], function(err) {
             logger.error("Error while logging user", err);

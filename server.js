@@ -63,10 +63,7 @@ function getClientList(socket) {
     var result = [];
     for(var i=0; i<clients.length; i++) {
         if(clients[i].socketid != socket.socketid) {
-            var client;
-            client.nick = clients[i].decoded_token.nick;
-            client.socketId = clients[i].socketid;
-            result.push(client);
+            result.push(createClientFromSocket(clients[i]));
         }
     }
     return result;
