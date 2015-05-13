@@ -7,13 +7,11 @@ var winston = require('winston');
 var bodyParser = require('body-parser');
 var socketio_jwt = require('socketio-jwt');
 var fs = require('fs');
-var async = require('async');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
 var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || 'localhost';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
-var mongo_db = process.env.OPENSHIFT_MONGODB_DB_URL || 'localhost/over9000';
 
 /* Setting secret */
 var secret = "testsecret";
@@ -70,9 +68,10 @@ function getClientListWithoutOne(socket) {
 }
 
 function createClientFromSocket(socket) {
-    var client;
-    client.nick = socket.decoded_token.nick;
-    client.socketId = socket.socketid;
+    var client = {
+        nick : socket.decoded_token.nick,
+        socketId : socket.socketid
+    };
     return client;
 }
 
