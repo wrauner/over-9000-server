@@ -59,7 +59,7 @@ io.use(socketio_jwt.authorize({
 var clients = [];
 
 /* Parsing clients */
-function getClientList(socket) {
+function getClientListWithoutOne(socket) {
     var result = [];
     for(var i=0; i<clients.length; i++) {
         if(clients[i].socketid != socket.socketid) {
@@ -79,11 +79,13 @@ function createClientFromSocket(socket) {
 io.on('connection', function (socket) {
     logger.info("Client connected: "+socket.decoded_token.nick+":"+socket.handshake.address);
     clients.push(socket);
-    socket.emit('client_list', getClientList(socket));
+    socket.emit('client_list', getClientListWithoutOne(socket));
+    io.sockets.emit('new_client', createClientFromSocket(socket));
     
     socket.on('disconnect', function() {
         logger.info("Clienct disconnected:"+socket.decoded_token.nick+":"+socket.handshake.address);
         clients.splice(clients.indexOf(socket), 1);
+        io.sockets.emit('client_disconnected', createClientFromSocket(socket));
     });
     socket.on('connect_to_user', function(socketId) {
         logger.info("Connecting "+socket.decoded_token.nick+" to "+socketId);
@@ -95,10 +97,10 @@ io.on('connection', function (socket) {
     });
     socket.on('send_message', function(msg) {
         logger.info("Message:"+msg+" from "+socket.decoded_token.nick);
-        io.to(msg.to).emit('message', msg);
+        io.to(msg.to).emit('received_message', msg);
     });
     socket.on('get_users', function() {
-        socket.emit('client_list', getClientList(socket));
+        socket.emit('client_list', getClientListWithoutOne(socket));
     });
 });
 
