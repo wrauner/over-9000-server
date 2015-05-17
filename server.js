@@ -10,7 +10,7 @@ var fs = require('fs');
 
 /* Config for RedHat OpenShift */
 var server_port = process.env.OPENSHIFT_NODEJS_PORT || 3000;
-var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || 'localhost';
+var server_ip_address = process.env.OPENSHIFT_NODEJS_IP || '192.168.0.4';
 var log_folder = process.env.OPENSHIFT_LOG_DIR || __dirname;
 
 /* Setting secret */
@@ -57,8 +57,8 @@ io.use(socketio_jwt.authorize({
 var clients = [];
 
 var clientBot = {
-    nick: "bot",
-    socketId: "bot"
+    decoded_token: "bot",
+    id: "bot"
 };
 
 clients.push(clientBot);
@@ -67,7 +67,7 @@ clients.push(clientBot);
 function getClientListWithoutOne(socket) {
     var result = [];
     for(var i=0; i<clients.length; i++) {
-        if(clients[i].socketid != socket.socketid) {
+        if(clients[i].id != socket.id) {
             result.push(createClientFromSocket(clients[i]));
         }
     }
@@ -76,27 +76,27 @@ function getClientListWithoutOne(socket) {
 
 function createClientFromSocket(socket) {
     var client = {
-        nick : socket.decoded_token.nick,
-        socketId : socket.socketid
+        nick : socket.decoded_token,
+        id : socket.id
     };
     return client;
 }
 
 io.on('connection', function (socket) {
-    logger.info("Client connected: "+socket.decoded_token.nick+":"+socket.handshake.address);
+    logger.info("Client connected: "+socket.decoded_token+":"+socket.handshake.address);
     clients.push(socket);
     socket.emit('client_list', getClientListWithoutOne(socket));
-    io.sockets.emit('new_client', createClientFromSocket(socket));
+    socket.broadcast.emit('new_client', createClientFromSocket(socket));
     
     socket.on('disconnect', function() {
-        logger.info("Clienct disconnected:"+socket.decoded_token.nick+":"+socket.handshake.address);
+        logger.info("Clienct disconnected:"+socket.decoded_token+":"+socket.handshake.address);
         clients.splice(clients.indexOf(socket), 1);
         io.sockets.emit('client_disconnected', createClientFromSocket(socket));
     });
     socket.on('connect_to_user', function(socketId) {
-        logger.info("Connecting "+socket.decoded_token.nick+" to "+socketId);
+        logger.info("Connecting "+socket.decoded_token+" to "+socketId);
         if (socketId === "bot"){
-            socket.emit('connection_accepted', clientBot);
+            socket.emit('connection_accepted', createClientFromSocket(clientBot));
         } else {
             io.to(socketId).emit('connection_request', createClientFromSocket(socket));
         }
@@ -105,10 +105,19 @@ io.on('connection', function (socket) {
         logger.info("Connection accepted");
         io.to(socketId).emit('connection_accepted', createClientFromSocket(socket));
     });
-    socket.on('send_message', function(msg) {
-        logger.info("Message:"+msg+" from "+socket.decoded_token.nick);
+    socket.on('send_message', function(message) {
+        logger.info("Message:"+message+" from "+socket.decoded_token);
+        var msg = JSON.parse(message);
         if(msg.to=="bot") {
-            //return message
+            if(msg.message.indexOf("echo")>=0) {
+                logger.info("Echoing", msg);
+                var reply = {
+                    to: socket.id,
+                    from: "bot",
+                    message: msg.message
+                };
+                socket.emit('received_message', reply);
+            }
         } else {
             io.to(msg.to).emit('received_message', msg);
         }
