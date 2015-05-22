@@ -74,11 +74,16 @@ function getClientListWithoutOne(socket) {
     return result;
 }
 
-function createClientFromSocket(socket) {
+function createClientFromSocket(socket, key) {
     var client = {
         nick : socket.decoded_token,
         id : socket.id
     };
+    if(key) {
+        client.key = key;
+    } else {
+        client.key = "";
+    }
     return client;
 }
 
@@ -93,17 +98,19 @@ io.on('connection', function (socket) {
         clients.splice(clients.indexOf(socket), 1);
         io.sockets.emit('client_disconnected', createClientFromSocket(socket));
     });
-    socket.on('connect_to_user', function(socketId) {
-        logger.info("Connecting "+socket.decoded_token+" to "+socketId);
-        if (socketId === "bot"){
+    socket.on('connect_to_user', function(message) {
+        var msg = JSON.parse(message);
+        logger.info("Connecting "+socket.decoded_token+" to "+msg.socketId);
+        if (msg.socketId === "bot"){
             socket.emit('connection_accepted', createClientFromSocket(clientBot));
         } else {
-            io.to(socketId).emit('connection_request', createClientFromSocket(socket));
+            io.to(msg.socketId).emit('connection_request', createClientFromSocket(socket, msg.key));
         }
     });
-    socket.on('accept_connection', function(socketId) {
+    socket.on('accept_connection', function(message) {
+        var msg = JSON.parse(message);
         logger.info("Connection accepted");
-        io.to(socketId).emit('connection_accepted', createClientFromSocket(socket));
+        io.to(msg.socketId).emit('connection_accepted', createClientFromSocket(socket, msg.key));
     });
     socket.on('send_message', function(message) {
         logger.info("Message:"+message+" from "+socket.decoded_token);
