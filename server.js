@@ -56,13 +56,6 @@ io.use(socketio_jwt.authorize({
 /* Temp list of clients */
 var clients = [];
 
-var clientBot = {
-    decoded_token: "bot",
-    id: "bot"
-};
-
-clients.push(clientBot);
-
 /* Parsing clients */
 function getClientListWithoutOne(socket) {
     var result = [];
@@ -101,11 +94,7 @@ io.on('connection', function (socket) {
     socket.on('connect_to_user', function(message) {
         var msg = JSON.parse(message);
         logger.info("Connecting "+socket.decoded_token+" to "+msg.socketId);
-        if (msg.socketId === "bot"){
-            socket.emit('connection_accepted', createClientFromSocket(clientBot));
-        } else {
-            io.to(msg.socketId).emit('connection_request', createClientFromSocket(socket, msg.key));
-        }
+        io.to(msg.socketId).emit('connection_request', createClientFromSocket(socket, msg.key));
     });
     socket.on('accept_connection', function(message) {
         var msg = JSON.parse(message);
@@ -115,19 +104,7 @@ io.on('connection', function (socket) {
     socket.on('send_message', function(message) {
         logger.info("Message:"+message+" from "+socket.decoded_token);
         var msg = JSON.parse(message);
-        if(msg.to=="bot") {
-            if(msg.message.indexOf("echo")>=0) {
-                logger.info("Echoing", msg);
-                var reply = {
-                    to: socket.id,
-                    from: "bot",
-                    message: msg.message
-                };
-                socket.emit('received_message', reply);
-            }
-        } else {
-            io.to(msg.to).emit('received_message', msg);
-        }
+        io.to(msg.to).emit('received_message', msg);
     });
     socket.on('get_users', function() {
         socket.emit('client_list', getClientListWithoutOne(socket));
