@@ -109,6 +109,10 @@ io.on('connection', function (socket) {
     socket.on('get_users', function() {
         socket.emit('client_list', getClientListWithoutOne(socket));
     });
+    socket.on('disconnect_from_user', function(socketId) {
+        logger.info("Client "+socket.decoded_token+" disconnected from conversation");
+        io.to(socketId).emit('client_quit_conversation');
+    })
 });
 
 /* If something brakes */
