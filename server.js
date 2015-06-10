@@ -101,6 +101,11 @@ io.on('connection', function (socket) {
         logger.info("Connection accepted");
         io.to(msg.socketId).emit('connection_accepted', createClientFromSocket(socket, msg.key));
     });
+    socket.on('reject_connection', function(message) {
+        var msg = JSON.parse(message);
+        logger.info("Connection rejected");
+        io.to(msg.socketId).emit('connection_rejected', createClientFromSocket(socket, msg.key));
+    });
     socket.on('send_message', function(message) {
         logger.info("Message:"+message+" from "+socket.decoded_token);
         var msg = JSON.parse(message);
