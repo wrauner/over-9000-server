@@ -17,7 +17,7 @@ module.exports.controller = function(app, logger) {
         async.waterfall([
             function(callback) {
                 if(req.params && req.params.nick) {
-                    logger.info("Generating token for", req.params.nick);
+                    logger.info("Generating token for user", req.params.nick);
                     callback(null, req.params.nick);
                 } else {
                     callback(messages.loginEmpty);

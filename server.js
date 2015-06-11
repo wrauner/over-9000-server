@@ -23,6 +23,7 @@ app.use(bodyParser.json());
 var logger = new(winston.Logger)({
   transports: [
     new(winston.transports.File)({
+      json: false,
       filename: log_folder + '/server.log'
     })
   ]
@@ -87,28 +88,32 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('new_client', createClientFromSocket(socket));
     
     socket.on('disconnect', function() {
-        logger.info("Clienct disconnected:"+socket.decoded_token+":"+socket.handshake.address);
+        logger.info("Clienct disconnected: "+socket.decoded_token+":"+socket.handshake.address);
         clients.splice(clients.indexOf(socket), 1);
         io.sockets.emit('client_disconnected', createClientFromSocket(socket));
     });
     socket.on('connect_to_user', function(message) {
         var msg = JSON.parse(message);
         logger.info("Connecting "+socket.decoded_token+" to "+msg.socketId);
+        logger.info("Message: "+msg);
         io.to(msg.socketId).emit('connection_request', createClientFromSocket(socket, msg.key));
     });
     socket.on('accept_connection', function(message) {
         var msg = JSON.parse(message);
         logger.info("Connection accepted");
+        logger.info("Message: "+msg);
         io.to(msg.socketId).emit('connection_accepted', createClientFromSocket(socket, msg.key));
     });
     socket.on('reject_connection', function(message) {
         var msg = JSON.parse(message);
         logger.info("Connection rejected");
+        logger.info("Message: "+msg);
         io.to(msg.socketId).emit('connection_rejected', createClientFromSocket(socket, msg.key));
     });
     socket.on('send_message', function(message) {
-        logger.info("Message:"+message+" from "+socket.decoded_token);
+        logger.info("New message: "+message+" from "+socket.decoded_token);
         var msg = JSON.parse(message);
+        logger.info("Message: "+msg);
         io.to(msg.to).emit('received_message', msg);
     });
     socket.on('get_users', function() {
