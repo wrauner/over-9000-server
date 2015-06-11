@@ -125,7 +125,7 @@ io.on('connection', function (socket) {
     })
 });
 
-/* If something brakes */
+/* If something breaks */
 process.on('uncaughtException', function(error) {
     logger.error("Uncaught exception", error);
 });
