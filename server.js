@@ -111,7 +111,7 @@ io.on('connection', function (socket) {
         io.to(msg.socketId).emit('connection_rejected', createClientFromSocket(socket, msg.key));
     });
     socket.on('send_message', function(message) {
-        logger.info("New message: "+message+" from "+socket.decoded_token);
+        logger.info("New message from "+socket.decoded_token);
         var msg = JSON.parse(message);
         logger.info("Message: "+message);
         io.to(msg.to).emit('received_message', msg);
